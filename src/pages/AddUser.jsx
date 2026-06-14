@@ -1,0 +1,201 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import Layout from '@/components/Layout'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ArrowLeft, Users } from 'lucide-react'
+import API from '@/services/api'
+
+const AddUser = () => {
+    const navigate = useNavigate()
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        password: '',
+        role: 'resident',
+        household_number: '',
+        purok: ''
+    })
+
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value })
+    }
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setError('')
+        setLoading(true)
+
+        try {
+            // Only send household info for residents
+            const submitData = {
+                name: form.name,
+                email: form.email,
+                password: form.password,
+                role: form.role,
+                household_number: form.role === 'resident' && form.household_number ? parseInt(form.household_number, 10) : null,
+                purok: form.role === 'resident' && form.purok ? parseInt(form.purok, 10) : null
+            }
+
+            console.log('Submitting user data:', submitData)
+            await API.post('/auth/register', submitData)
+            navigate('/admin')
+        } catch (error) {
+            setError(error.response?.data?.message || 'Failed to add user')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <Layout>
+            <div className="max-w-2xl mx-auto">
+
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-8">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate('/admin')}
+                        className="flex items-center gap-2"
+                    >
+                        <ArrowLeft size={16} />
+                        Back
+                    </Button>
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Add User</h1>
+                        <p className="text-gray-500 mt-1">Create a new system user</p>
+                    </div>
+                </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users size={20} className="text-blue-600" />
+                            User Information
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
+                                {error}
+                            </div>
+                        )}
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Full Name</Label>
+                                    <Input
+                                        id="name"
+                                        name="name"
+                                        placeholder="e.g. Juan Dela Cruz"
+                                        value={form.name}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        placeholder="e.g. juan@gmail.com"
+                                        value={form.email}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Password</Label>
+                                    <Input
+                                        id="password"
+                                        name="password"
+                                        type="password"
+                                        placeholder="Enter password"
+                                        value={form.password}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="role">Role</Label>
+                                    <select
+                                        id="role"
+                                        name="role"
+                                        value={form.role}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="resident">Resident</option>
+                                        <option value="staff">Staff</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="household_number">
+                                        Household Number (for residents only)
+                                    </Label>
+                                    <Input
+                                        id="household_number"
+                                        name="household_number"
+                                        placeholder="e.g. 101"
+                                        value={form.household_number}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="purok">
+                                        Purok (for residents only)
+                                    </Label>
+                                    <select
+                                        id="purok"
+                                        name="purok"
+                                        value={form.purok}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Select purok...</option>
+                                        {[1, 2, 3, 4, 5, 6, 7].map(p => (
+                                            <option key={p} value={p}>{p}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <Button
+                                    type="submit"
+                                    className="bg-blue-900 hover:bg-blue-700 text-white"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Saving...' : 'Save User'}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => navigate('/admin')}
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+
+            </div>
+        </Layout>
+    )
+}
+
+export default AddUser
